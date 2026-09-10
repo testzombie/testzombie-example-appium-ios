@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="de" data-dom-mode="stable">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>TestZombie Hybrid Summary</title><link rel="stylesheet" href="summary.css">
+</head>
+<body>
+<main class="shell">
+  <header class="brand"><img class="mark" src="testzombie-ai-icon.png" alt="TestZombie Logo"><span><b>TestZombie</b><small>KEEP YOUR TESTS ALIVE</small></span><em id="mutationLevel">Level 0</em></header>
+  <p class="eyebrow">WEBVIEW · HYBRID DEMO</p>
+  <h1 id="summaryTitle" data-testid="summary-title">Dein Konto ist bereit</h1>
+  <p class="intro">Native Eingabe, hybride Zusammenfassung und reproduzierbare DOM-Mutationen.</p>
+  <section class="card" id="personSummary" data-testid="person-summary">
+    <h2>Person</h2>
+    <dl><div><dt>Name</dt><dd id="fullName"></dd></div><div><dt>E-Mail</dt><dd id="email"></dd></div><div><dt>Geburtsdatum</dt><dd id="birthDate"></dd></div></dl>
+  </section>
+  <section class="card plan" id="planSummary" data-testid="plan-summary"><span>Gewählter Plan</span><strong id="plan"></strong><p>Der Plan wurde nativ ausgewählt und an die WebView übergeben.</p></section>
+  <section class="card demo" id="demoCard">
+    <h2>Hybrid-Testpunkte</h2>
+    <label><input type="checkbox" id="terms" data-testid="web-terms"> Angaben geprüft</label>
+    <button id="finishButton" data-testid="web-finish-button">Onboarding abschließen</button>
+    <p id="status" role="status"></p>
+  </section>
+</main><script src="summary.js"></script>
+</body></html>

@@ -1,10 +1,10 @@
-package ai.testzombie.appium;
+package ai.testzombie.appium.support;
 
 /**
  * Locator-Matrix passend zu den accessibilityIdentifier-/DOM-Mutationen
  * der gelieferten SwiftUI-App.
  */
-record MutationLevel(
+public record MutationLevel(
         int value,
         String password,
         String passwordConfirm,
@@ -19,7 +19,7 @@ record MutationLevel(
         String termsId,
         String finishId
 ) {
-    static MutationLevel of(int level) {
+    public static MutationLevel of(int level) {
         return switch (level) {
             case 0 -> new MutationLevel(0,
                     "password-input", "password-confirm-input", "password-next",
@@ -54,7 +54,7 @@ record MutationLevel(
                 "confirmationCheck", "activateAccount");
     }
 
-    boolean usesPlanDropdown() {
+    public boolean usesPlanDropdown() {
         return value == 4;
     }
 }

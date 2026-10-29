@@ -1,4 +1,4 @@
-package ai.testzombie.appium;
+package ai.testzombie.appium.support;
 
 import io.appium.java_client.ios.IOSDriver;
 import org.openqa.selenium.Dimension;
@@ -12,10 +12,10 @@ import java.util.List;
 /**
  * W3C-Touch-Geste statt Android-spezifischem mobile: scrollGesture.
  */
-final class ScrollHelper {
+public final class ScrollHelper {
     private ScrollHelper() {}
 
-    static void scrollDown(IOSDriver driver) {
+    public static void scrollDown(IOSDriver driver) {
         Dimension size = driver.manage().window().getSize();
         int x = size.width / 2;
         int startY = (int) (size.height * 0.78);

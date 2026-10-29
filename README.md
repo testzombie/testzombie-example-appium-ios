@@ -1,89 +1,55 @@
-# TestZombie + Appium iOS – Quickstart
+# TestZombie Appium iOS Example
 
-Dieses Beispielprojekt zeigt die Verwendung von **TestZombie** mit **Appium** für eine iOS-Hybrid-App.
+A small Appium iOS project that demonstrates **TestZombie Self-Healing**, **Discovery**, and optional **Persistent Healing** with `com.testzombie:testzombie-lib-java`.
 
-Die App enthält neben nativen iOS-Elementen auch **Web-Inhalte**. Während der Tests wird deshalb vom nativen App-Kontext (`NATIVE_APP`) in einen `WEBVIEW`-Kontext gewechselt.
+The example intentionally uses normal Appium tests and Page Objects. The three main demonstrations use the original **Mutation Level 0** locators; there are no TestZombie-specific fallback locators in the test code. The demo app is **hybrid**: it starts in `NATIVE_APP` and finishes in a `WEBVIEW`.
 
-Für iOS wird der Appium **XCUITest Driver** verwendet.
+## Quick start — 1, 2, 3
 
----
+### 1. Install
 
-## Voraussetzungen
+Clone the project and make sure the following are available **on a Mac**:
 
-Für die Ausführung werden benötigt:
+- **Java 21** or newer and Maven
+- Node.js and Appium with the **XCUITest** driver
+- Xcode with a compatible iOS Simulator (or a properly configured physical iOS device)
+- The bundled `TestZombieHybridIOS.app` in the project root
+- WebKit/Web Inspector support for the app's WebView
 
-- macOS
-- Java 17+
-- Maven
-- Node.js und Appium
-- Appium XCUITest Driver
-- Xcode
-- iOS Simulator oder passend konfiguriertes physisches iOS-Gerät
-- TestZombie API Key und E-Mail-Adresse
-
-Das Beispiel-App-Bundle `TestZombieHybridIOS.app` liegt standardmäßig im Projektverzeichnis.
-
----
-
-## 1. Appium starten
-
-Die Demo-App ist eine **Hybrid-App** und enthält Web-Inhalte.
-
-Im Test wird deshalb unter anderem in einen `WEBVIEW`-Kontext gewechselt. Unter iOS übernimmt Appium den Zugriff über den XCUITest-/WebKit-Stack.
-
-Appium und den XCUITest Driver installieren:
-
-Anschließend Appium normal starten:
+Install Appium and the XCUITest driver if necessary:
 
 ```bash
-appium
-```
----
-
-## 2. TestZombie Credentials
-
-Für die Verwendung von TestZombie werden ein **API Key** und die zugehörige **E-Mail-Adresse** benötigt.
-
-Die Credentials können auf verschiedene Arten gesetzt werden.
-
-### Variante 1 – Credentials direkt im Java-Code setzen
-
-Für einen einfachen lokalen Test oder zum schnellen Ausprobieren können die Credentials direkt bei der Initialisierung gesetzt werden.
-
-Zum Beispiel in `AppiumTestBase`:
-
-```java
-TestZombieDriver.setCredentials(
-        "YOUR_API_KEY",
-        "YOUR_EMAIL"
-);
+npm install -g appium
+appium driver install xcuitest
 ```
 
-Beispiel im Zusammenhang mit der Driver-Erzeugung:
-
-```java
-@BeforeEach
-void setUp() {
-    TestZombieDriver.setCredentials(
-            "YOUR_API_KEY",
-            "YOUR_EMAIL"
-    );
-
-    // Appium / TestZombie Driver anschließend wie gewohnt erzeugen
-}
-```
-
-Danach können die Tests ohne zusätzliche Credential-Parameter gestartet werden:
+Start an iOS simulator in Xcode, then launch **Appium in a separate terminal**:
 
 ```bash
-mvn test
+appium server
 ```
 
-> Diese Variante eignet sich vor allem zum schnellen lokalen Ausprobieren. Echte API Keys sollten nicht in Git eingecheckt werden.
+The example uses **TestZombie Java SDK 1.3.1** via Maven:
 
-### Variante 2 – Credentials in der `pom.xml` setzen
+```xml
+<dependency>
+    <groupId>com.testzombie</groupId>
+    <artifactId>testzombie-lib-java</artifactId>
+    <version>1.3.1</version>
+</dependency>
+```
 
-Die Credentials können auch im bereits vorhandenen `defaults`-Profil der `pom.xml` hinterlegt werden.
+The default Appium server URL is `http://127.0.0.1:4723`, and the default simulator name is `iPhone 16e`. The supplied `.app` is a **simulator build**. Testing on a physical iPhone requires an appropriately built and signed device application (usually an `.ipa`) and additional Xcode/WebDriverAgent setup.
+
+> **Platform note:** The iOS Simulator and Xcode/XCUITest test execution require macOS. You cannot run the bundled simulator app with a Linux-based Android emulator.
+
+### 2. Configure TestZombie
+
+Create an account at **https://testzombie.ai** and copy your **API key** and **account e-mail**. Choose one of these credential options.
+
+#### Option 1 — Enter credentials in `pom.xml` (quickest local setup)
+
+Open `pom.xml` and find the existing `defaults` profile near the bottom. Fill in its two empty properties:
 
 ```xml
 <profiles>
@@ -100,439 +66,450 @@ Die Credentials können auch im bereits vorhandenen `defaults`-Profil der `pom.x
 </profiles>
 ```
 
-Das Maven Surefire Plugin gibt diese Werte an die Tests weiter.
+The existing Maven Surefire plugin passes these values as Java system properties. `AppiumDriverFactory` reads them and calls `TestZombieDriver.setCredentials(...)` before creating a TestZombie iOS session.
 
-Im Java-Code können sie anschließend über die System Properties gelesen werden:
-
-```java
-String apiKey = System.getProperty("testzombie.apikey");
-String email = System.getProperty("testzombie.email");
-
-TestZombieDriver.setCredentials(apiKey, email);
-```
-
-Danach reicht zum Starten der Tests:
+With the simulator and Appium running, start the Self-Healing demo **without extra credential arguments**:
 
 ```bash
-mvn test
+mvn test -Dtest=OnboardingFlowTest
 ```
 
-> Auch hier gilt: Eine `pom.xml` mit echten Zugangsdaten sollte nicht in ein öffentliches oder gemeinsam genutztes Git-Repository eingecheckt werden.
+> **Security:** Use this option for a quick local demo only. **Never commit or share a `pom.xml` containing real credentials.** Restore the properties to empty values before pushing. For CI/CD, prefer one of the alternatives below.
 
-### Variante 3 – Credentials über Maven übergeben
+#### Option 2 — Pass credentials as Maven parameters
 
-Die Credentials können direkt beim Maven-Aufruf als System Properties gesetzt werden:
+Leave the credential values in `pom.xml` empty and provide them when starting the test:
 
 ```bash
-mvn test \
+mvn test -Dtest=OnboardingFlowTest \
   -Dtestzombie.apikey=YOUR_API_KEY \
   -Dtestzombie.email=YOUR_EMAIL
 ```
 
-PowerShell:
+#### Option 3 — Set environment variables
 
-```powershell
-mvn test `
-  -Dtestzombie.apikey=YOUR_API_KEY `
-  -Dtestzombie.email=YOUR_EMAIL
-```
+Leave the credential properties in `pom.xml` empty and set environment variables instead.
 
-Die Werte werden in Java über
-
-```java
-System.getProperty("testzombie.apikey")
-System.getProperty("testzombie.email")
-```
-
-gelesen.
-
-### Variante 4 – Credentials über Environment Variables
-
-Linux / macOS:
+**macOS (Terminal)**
 
 ```bash
 export TESTZOMBIE_API_KEY="YOUR_API_KEY"
 export TESTZOMBIE_EMAIL="YOUR_EMAIL"
-
-mvn test
 ```
 
-PowerShell:
+**PowerShell (for configuration only; iOS execution still requires macOS)**
 
 ```powershell
 $env:TESTZOMBIE_API_KEY="YOUR_API_KEY"
 $env:TESTZOMBIE_EMAIL="YOUR_EMAIL"
-
-mvn test
 ```
 
-Die Environment Variables werden in Java über
+`AppiumDriverFactory` checks Java system properties first, then environment variables. These options all use the same `TestZombieDriver.setCredentials(...)` integration.
 
-```java
-System.getenv("TESTZOMBIE_API_KEY")
-System.getenv("TESTZOMBIE_EMAIL")
+### 3. Run the Self-Healing demo
+
+With your iOS simulator running and Appium started in the other terminal:
+
+```bash
+mvn test -Dtest=OnboardingFlowTest
 ```
 
-gelesen.
+The same hybrid onboarding flow runs through five mutation levels:
 
-### Credential-Auflösung im Beispielprojekt
+```text
+OFF → LIGHT → REALISTIC → HARD → EXTREME
+ 0      1        2        3        4
+```
 
-Wenn die Credentials nicht direkt im Code gesetzt werden, verwendet `AppiumTestBase` die vorhandene Auflösung über System Properties und Environment Variables:
+JUnit executes a separate test/session for each level. At higher levels, original locators may become invalid. TestZombie attempts to identify the correct element so the Appium action can continue.
+
+> **Why select a test class?** `mvn test` runs all discovered tests, including Discovery and the Code Update demo. Code Update uses `APPLY` by default and may modify your Java source files. Prefer the explicit demo commands shown here.
+
+---
+
+## Discovery — learn a working business flow
+
+Self-Healing fixes broken locators. **Discovery has a different job:** it observes a successful test flow and collects useful context about what happened.
+
+Run the dedicated Discovery example:
+
+```bash
+mvn test -Dtest=DiscoveryLevel0Test
+```
+
+This example executes **one stable onboarding flow at Mutation Level 0 / OFF**, just like the Playwright Discovery example. Nothing is intentionally broken. TestZombie observes the application's normal behavior.
+
+### What happens during Discovery?
+
+In simple terms:
+
+```text
+Existing Appium iOS test
+        ↓
+successful native + WebView user flow
+        ↓
+TestZombie Discovery
+        ↓
+pages + elements + interactions + context
+        ↓
+AI Test Design
+        ↓
+business test cases
+        ↓
+selected test cases
+        ↓
+automation code
+```
+
+Discovery can collect context from the successful journey, including visited screens/pages, relevant elements, interactions, and their sequence. This can support future AI-based test design and automation generation.
+
+The dedicated test is in:
+
+```text
+src/test/java/ai/testzombie/appium/tests/DiscoveryLevel0Test.java
+```
+
+The important part is deliberately small:
 
 ```java
-String apiKey = firstNonBlank(
-        System.getProperty("testzombie.apikey"),
-        System.getenv("TESTZOMBIE_API_KEY")
-);
+@Override
+protected boolean discoveryEnabled() {
+    return true;
+}
+```
 
-String email = firstNonBlank(
-        System.getProperty("testzombie.email"),
-        System.getenv("TESTZOMBIE_EMAIL")
-);
+Before the iOS Appium session is created, `BaseIosTest` passes this flag to `AppiumDriverFactory`, which calls:
 
+```java
+NativeDiscovery.configure(discoveryEnabled);
+```
+
+This helper configures **the TestZombie SDK's native Discovery**, rather than creating a separate local recorder. When the SDK exposes the relevant public setters, the equivalent configuration is:
+
+```java
+TestZombieDriver.setDiscoveryEnabled(true);
+TestZombieDriver.setDiscoveryFileEnabled(true);
+TestZombieDriver.setDiscoveryFilePath(
+    "test-results/testzombie-discovery-{testRunId}.json"
+);
+```
+
+The provided `NativeDiscovery` helper looks for those setters at runtime. **Local JSON output is requested, not guaranteed:** its availability depends on the SDK's file-output methods. When supported, the requested output location is:
+
+```text
+test-results/testzombie-discovery-<testRunId>.json
+```
+
+The test itself stays normal Appium/Page-Object code. No application-side JSON recorder is used.
+
+### Why Mutation Level 0?
+
+The main Healing demo intentionally changes locator-relevant UI properties. Discovery uses the stable baseline so the collected data describes a **valid business process**.
+
+```text
+Discovery     → understand the working flow
+Self-Healing  → keep the flow running when locators change
+```
+
+---
+
+## Code Update — run Level 0, heal Level 1 and update the source
+
+Discovery learns a working flow. **Code Update** demonstrates the maintenance step after a UI change: TestZombie heals a broken locator and can write the verified replacement into the Java Page Object.
+
+Run the dedicated demo:
+
+```bash
+mvn test -Dtest=CodeUpdateLevel0And1Test
+```
+
+Unlike the Playwright example, which starts on Level 1, this iOS example runs the same journey **twice in one Appium/TestZombie session**:
+
+1. **Mutation Level 0 / OFF** — complete a successful baseline.
+2. **Restart the iOS app**, keeping the same Appium/TestZombie driver session.
+3. **Mutation Level 1 / LIGHT** — repeat the steps using the original Level-0 locators, allowing TestZombie to heal and persist working replacements.
+
+### What should happen?
+
+```text
+Existing Appium iOS test
+        ↓
+successful Level-0 baseline
+        ↓
+terminate + activate app (same Appium session)
+        ↓
+Mutation Level 1 changes the UI / locators
+        ↓
+original locator no longer works
+        ↓
+TestZombie heals the element at runtime
+        ↓
+action succeeds with the healed locator
+        ↓
+Code Update writes the working locator back to the Page Object
+```
+
+The dedicated test is in:
+
+```text
+src/test/java/ai/testzombie/appium/tests/CodeUpdateLevel0And1Test.java
+```
+
+It selects `APPLY` by default and also supports `PREVIEW`:
+
+```java
+@Override
+protected SourceUpdateMode sourceUpdateMode() {
+    String value = System.getProperty("testzombie.codeupdate.mode", "apply").trim();
+    return switch (value.toLowerCase(Locale.ROOT)) {
+        case "apply" -> SourceUpdateMode.APPLY;
+        case "preview" -> SourceUpdateMode.PREVIEW;
+        default -> throw new IllegalArgumentException(
+            "testzombie.codeupdate.mode must be apply or preview");
+    };
+}
+```
+
+`AppiumDriverFactory` configures the mode **before** creating the iOS session:
+
+```java
+TestZombieDriver.setSourceUpdateMode(sourceUpdateMode);
+```
+
+Preview the edits without changing files:
+
+```bash
+mvn test -Dtest=CodeUpdateLevel0And1Test -Dtestzombie.codeupdate.mode=preview
+```
+
+After an `APPLY` run, inspect the source changes:
+
+```bash
+git diff -- src/test/java/ai/testzombie/appium/pages
+```
+
+To restore the baseline Page Object locators for another demonstration:
+
+```bash
+git restore -- src/test/java/ai/testzombie/appium/pages
+```
+
+> **Warning:** `git restore` discards **all uncommitted changes** in those files. Review `git diff` before using it.
+
+### Why keep the same driver session?
+
+`BaseIosTest.resetDemoState()` switches to `NATIVE_APP`, calls `terminateApp(bundleId)` and then `activateApp(bundleId)`. **It does not quit and recreate the Appium driver.** This keeps the source-update sequence together, while restarting the app's UI for Level 1.
+
+This assumes the restarted app returns to the mutation-level selection screen. If the app persists state across restarts, the app may need an additional reset operation.
+
+```text
+Discovery Level 0        → learn a valid business flow
+Code Update Level 0 → 1  → establish baseline, heal changed UI, persist locators
+```
+
+---
+
+## How TestZombie is integrated
+
+The central integration is intentionally small.
+
+Normal Appium iOS:
+
+```java
+IOSDriver driver = new IOSDriver(serverUrl, options);
+```
+
+With TestZombie:
+
+```java
 TestZombieDriver.setCredentials(apiKey, email);
+TestZombieDriver.setSourceUpdateMode(sourceUpdateMode);
+IOSDriver driver = TestZombieDriverMobile.createIOS(serverUrl, options);
 ```
 
-Dabei haben die System Properties Vorrang vor den Environment Variables:
+The code above illustrates the expected factory call. The project itself locates a public `createIOS(...)` or `createIos(...)` method **at runtime** to accommodate the available TestZombie SDK factory spelling/signature.
+
+All driver setup is centralized in:
 
 ```text
--Dtestzombie.apikey
--Dtestzombie.email
-        ↓
-TESTZOMBIE_API_KEY
-TESTZOMBIE_EMAIL
+src/test/java/ai/testzombie/appium/support/AppiumDriverFactory.java
 ```
 
-Für lokale Entwicklung und CI/CD sind Maven-Properties oder Environment Variables meist die bessere Wahl, damit keine Secrets im Quellcode oder in eingecheckten Konfigurationsdateien liegen.
+It uses `XCUITestOptions` with the default bundle ID `ai.testzombie.hybridios`, device name `iPhone 16e`, app path `./TestZombieHybridIOS.app`, and Appium URL `http://127.0.0.1:4723`.
 
----
+Existing Page Objects and Selenium-style `By` locators remain familiar. The three feature tests use the Level-0 locators even after the app changes; **they do not switch to level-specific fallback locators**. The separate `MutationLevelMatrixTest` deliberately uses known selectors for each mutation level as a diagnostic control.
 
-## 3. Tests starten
+### Hybrid app: `NATIVE_APP` → `WEBVIEW`
 
-Appium zuerst in einem Terminal starten:
-
-```bash
-appium server
-```
-
-Anschließend können die Tests – abhängig von der gewählten Credential-Variante – in einem zweiten Terminal gestartet werden.
-
-### Credentials direkt im Java-Code oder in der `pom.xml`
-
-Wenn die Credentials bereits direkt im Java-Code oder im `defaults`-Profil der `pom.xml` gesetzt wurden:
-
-```bash
-mvn test
-```
-
-### Credentials über Maven
-
-```bash
-mvn test \
-  -Dtestzombie.apikey=YOUR_API_KEY \
-  -Dtestzombie.email=YOUR_EMAIL
-```
-
-### Credentials über Environment Variables
-
-Credentials einmal setzen:
-
-```bash
-export TESTZOMBIE_API_KEY="YOUR_API_KEY"
-export TESTZOMBIE_EMAIL="YOUR_EMAIL"
-```
-
-Tests starten:
-
-```bash
-mvn test
-```
-
----
-
-## 4. iOS-App konfigurieren
-
-Standardmäßig verwendet das Projekt:
+The onboarding flow is:
 
 ```text
-./TestZombieHybridIOS.app
+Select mutation level
+        ↓
+Enter and confirm password           (NATIVE_APP)
+        ↓
+Enter personal details               (NATIVE_APP)
+        ↓
+Choose Enterprise plan               (NATIVE_APP)
+        ↓
+Switch to WEBVIEW
+        ↓
+Confirm the summary                  (WEBVIEW)
+        ↓
+Verify success status
 ```
 
-Ein anderes `.app`-Bundle kann über eine System Property angegeben werden:
-
-```bash
-mvn test \
-  -Dapp.ios=/path/to/TestZombieHybridIOS.app \
-  -Dtestzombie.apikey=YOUR_API_KEY \
-  -Dtestzombie.email=YOUR_EMAIL
-```
-
-Alternativ kann der App-Pfad über eine Environment Variable gesetzt werden:
-
-Linux / macOS:
-
-```bash
-export APP_IOS="/path/to/TestZombieHybridIOS.app"
-```
-
-PowerShell:
-
-```powershell
-$env:APP_IOS="/path/to/TestZombieHybridIOS.app"
-```
-
-> Im Repository ist bereits `TestZombieHybridIOS.app` enthalten. Das Skript `scripts/build-ios-simulator.sh` erwartet zusätzlich ein Xcode-Projekt unter `ios-app/TestZombieHybridIOS.xcodeproj`. Dieses Quellprojekt ist im vorliegenden Projektstand nicht enthalten, deshalb kann für den Quickstart direkt das vorhandene `.app`-Bundle verwendet werden.
+The WebView is accessed through XCUITest/WebKit. Unlike the Android example, this iOS project **does not need Android's `chromedriver_autodownload` Appium flag**. On a physical iPhone, confirm the necessary Web Inspector and device trust/developer settings are enabled.
 
 ---
 
-## 5. Weitere Konfiguration
+## Optional: Persistent Healing modes
 
-Die wichtigsten Einstellungen können entweder über System Properties oder Environment Variables überschrieben werden:
+The dedicated `CodeUpdateLevel0And1Test` uses `APPLY` by default. The other feature demos use `OFF` for source updates.
 
-| Einstellung | System Property | Environment Variable | Standard |
-|---|---|---|---|
-| Appium Server | `-Dappium.server=...` | `APPIUM_SERVER` | `http://127.0.0.1:4723` |
-| Device Name | `-Ddevice.name=...` | `DEVICE_NAME` | `iPhone 16e` |
-| iOS App | `-Dapp.ios=...` | `APP_IOS` | `./TestZombieHybridIOS.app` |
-| Bundle ID | `-Dapp.bundleId=...` | `APP_BUNDLE_ID` | `ai.testzombie.hybridios` |
-| Device UDID | `-Ddevice.udid=...` | `DEVICE_UDID` | – |
-| Platform Version | `-Dplatform.version=...` | `PLATFORM_VERSION` | – |
-| TestZombie Healing | `-Dtestzombie.healing=...` | `TESTZOMBIE_HEALING` | `true` |
-| TestZombie API Key | `-Dtestzombie.apikey=...` | `TESTZOMBIE_API_KEY` | – |
-| TestZombie E-Mail | `-Dtestzombie.email=...` | `TESTZOMBIE_EMAIL` | – |
+| Mode | Behavior |
+| --- | --- |
+| `OFF` | Do not update Java source files. |
+| `PREVIEW` | Report planned locator replacements without writing files. |
+| `APPLY` | Write successfully healed locators back into the Java source. |
 
-Beispiel:
+Choose the Code Update mode with the test-specific property:
 
 ```bash
-mvn test \
-  -Ddevice.name="iPhone 16" \
-  -Dplatform.version="18.0" \
-  -Dapp.ios=./TestZombieHybridIOS.app \
-  -Dtestzombie.apikey=YOUR_API_KEY \
-  -Dtestzombie.email=YOUR_EMAIL
+# Preview only
+mvn test -Dtest=CodeUpdateLevel0And1Test -Dtestzombie.codeupdate.mode=preview
+
+# Apply verified updates (default)
+mvn test -Dtest=CodeUpdateLevel0And1Test -Dtestzombie.codeupdate.mode=apply
 ```
+
+The Java SDK also recognizes `TESTZOMBIE_SOURCE_UPDATE_MODE` when there is no explicit Java override. **In this example**, `AppiumDriverFactory` explicitly calls `TestZombieDriver.setSourceUpdateMode(...)`, so the per-test setting takes precedence.
 
 ---
 
-## 6. Einzelne Tests ausführen
+## Useful commands
 
-Nur die Healing-Demo:
+| Command | Purpose |
+| --- | --- |
+| `appium server` | Start the Appium server on macOS |
+| `appium driver list --installed` | Check that `xcuitest` is installed |
+| `mvn test -Dtest=OnboardingFlowTest` | Self-Healing on levels 0–4 |
+| `mvn test -Dtest=DiscoveryLevel0Test` | Native Discovery on stable Level 0 |
+| `mvn test -Dtest=CodeUpdateLevel0And1Test` | Level 0 → Level 1, source updates in `APPLY` mode |
+| `mvn test -Dtest=CodeUpdateLevel0And1Test -Dtestzombie.codeupdate.mode=preview` | Preview source edits |
+| `mvn test -Dtest=MutationLevelMatrixTest` | Diagnostic iOS app control with known level-specific locators and a regular `IOSDriver` |
+| `mvn test -Dtest=OnboardingFlowTest -Ddevice.name="iPhone 16e"` | Select a simulator name |
+| `mvn test -Dtest=OnboardingFlowTest -Dapp.ios=/path/to/app.app` | Use a different iOS app bundle |
+| `mvn test` | Run **all** discovered tests, including Code Update (`APPLY`) |
 
-```bash
-mvn -Dtest=BaselineHealingDemoTest test
-```
-
-Nur die Mutation-Level-Matrix:
-
-```bash
-mvn \
-  -Dtestzombie.healing=false \
-  -Dtest=MutationLevelMatrixTest \
-  test
-```
-
-Wenn die Credentials nicht bereits direkt im Java-Code, in der `pom.xml` oder als Environment Variables gesetzt wurden, müssen sie für die Healing-Demo beim Maven-Aufruf zusätzlich angegeben werden.
-
-Beispiel:
+Shell scripts are also included for the individual demos:
 
 ```bash
-mvn \
-  -Dtest=BaselineHealingDemoTest \
-  -Dtestzombie.apikey=YOUR_API_KEY \
-  -Dtestzombie.email=YOUR_EMAIL \
-  test
+./scripts/run-healing-demo.sh ./TestZombieHybridIOS.app "iPhone 16e"
+./scripts/run-discovery.sh ./TestZombieHybridIOS.app "iPhone 16e"
+./scripts/run-codeupdate.sh ./TestZombieHybridIOS.app "iPhone 16e"
+./scripts/run-matrix.sh ./TestZombieHybridIOS.app "iPhone 16e"
 ```
 
-Bei `-Dtestzombie.healing=false` wird direkt ein normaler `IOSDriver` erzeugt. Dafür sind keine TestZombie-Credentials erforderlich.
+Additional configuration can be passed as Maven system properties or environment variables:
 
-Alternativ stehen die mitgelieferten Skripte zur Verfügung:
-
-```bash
-./scripts/run-healing-demo.sh ./TestZombieHybridIOS.app "iPhone 16"
-./scripts/run-matrix.sh ./TestZombieHybridIOS.app "iPhone 16"
-```
+| Setting | Java system property | Environment variable | Default |
+| --- | --- | --- | --- |
+| Appium server | `appium.server` | `APPIUM_SERVER` | `http://127.0.0.1:4723` |
+| Device name | `device.name` | `DEVICE_NAME` | `iPhone 16e` |
+| iOS app path | `app.ios` | `APP_IOS` | `./TestZombieHybridIOS.app` |
+| Bundle ID | `app.bundleId` | `APP_BUNDLE_ID` | `ai.testzombie.hybridios` |
+| Device UDID | `device.udid` | `DEVICE_UDID` | Optional |
+| Platform version | `platform.version` | `PLATFORM_VERSION` | Optional |
+| API key | `testzombie.apikey` | `TESTZOMBIE_API_KEY` | No value |
+| Account e-mail | `testzombie.email` | `TESTZOMBIE_EMAIL` | No value |
+| Discovery file path | `testzombie.discovery.file` | `TESTZOMBIE_DISCOVERY_FILE` | `test-results/testzombie-discovery-{testRunId}.json` |
 
 ---
 
-## 7. Was zeigt die Demo?
-
-### `BaselineHealingDemoTest`
-
-Der Test verwendet für alle Mutation Levels die Baseline-Locators aus Level 0.
-
-Der eigentliche Testablauf bleibt unverändert, während TestZombie die Healing-Funktion übernimmt.
-
-### `MutationLevelMatrixTest`
-
-Der Kontrolltest enthält die erwarteten Locators für die verschiedenen Mutation Levels.
-
-Damit kann unabhängig von der Healing-Demo geprüft werden, ob die jeweiligen Varianten der Demo-App grundsätzlich bedienbar sind.
-
-Der Ablauf ist:
-
-```text
-Mutation Level auswählen
-        ↓
-Passwortdaten erfassen
-        ↓
-Personendaten erfassen
-        ↓
-Enterprise-Plan auswählen
-        ↓
-von NATIVE_APP in WEBVIEW wechseln
-        ↓
-Bestätigung ausführen
-        ↓
-Erfolgsstatus prüfen
-```
-
-Fehlerscreenshots werden unter `target/screenshots` gespeichert. Surefire-Berichte liegen unter `target/surefire-reports`.
-
----
-
-## 8. Projektstruktur
+## Project structure
 
 ```text
 testzombie-example-appium-ios/
-├── TestZombieHybridIOS.app/
 ├── pom.xml
 ├── README.md
+├── TestZombieHybridIOS.app/
 ├── scripts/
 │   ├── build-ios-simulator.sh
-│   ├── run-healing-demo.ps1
 │   ├── run-healing-demo.sh
-│   ├── run-matrix.ps1
+│   ├── run-discovery.sh
+│   ├── run-codeupdate.sh
 │   └── run-matrix.sh
-└── src/
-    └── test/
-        └── java/
-            └── ai/
-                └── testzombie/
-                    └── appium/
-                        ├── AppiumTestBase.java
-                        ├── BaselineHealingDemoTest.java
-                        ├── HybridOnboardingPage.java
-                        ├── MutationLevel.java
-                        ├── MutationLevelMatrixTest.java
-                        └── ScrollHelper.java
+└── src/test/java/ai/testzombie/appium/
+    ├── pages/
+    │   └── HybridOnboardingPage.java
+    ├── support/
+    │   ├── AppiumDriverFactory.java
+    │   ├── MutationLevel.java
+    │   ├── NativeDiscovery.java
+    │   └── ScrollHelper.java
+    ├── testbase/
+    │   ├── BaseIosTest.java
+    │   └── OnboardingScenario.java
+    └── tests/
+        ├── CodeUpdateLevel0And1Test.java
+        ├── DiscoveryLevel0Test.java
+        ├── MutationLevelMatrixTest.java
+        └── OnboardingFlowTest.java
 ```
 
-### `AppiumTestBase`
+`BaseIosTest` manages the Appium session lifecycle, configures SDK options per scenario, and saves failure screenshots under `target/screenshots`. `OnboardingScenario` contains the shared native-to-WebView workflow. `HybridOnboardingPage` implements the screen interactions; `ScrollHelper` supports native scrolling.
 
-Enthält:
+### Optional control: `MutationLevelMatrixTest`
 
-- Appium-Server-Konfiguration
-- Device- und Simulator-Konfiguration
-- iOS-App- und Bundle-ID-Konfiguration
-- TestZombie Credential-Auflösung
-- optionale TestZombie-Healing-Aktivierung
-- iOS Driver-Erzeugung über XCUITest
-- Screenshot-Erzeugung
+The matrix test is **not another Self-Healing demo**. It executes mutation levels 0–4 using known, level-specific selectors and a regular `IOSDriver` without TestZombie healing. Use it to distinguish demo-app behavior from a locator-healing problem:
 
-### `HybridOnboardingPage`
-
-Enthält die vorhandenen nativen iOS- und WebView-Interaktionen.
-
-### `MutationLevel`
-
-Enthält die Locator-Konfiguration für die Mutation Levels.
-
-### Hinweis zur iOS-Factory
-
-Für Android stellt die verwendete TestZombie-Library eine direkte Android-Factory bereit.
-
-Im iOS-Beispiel sucht `AppiumTestBase` deshalb zur Laufzeit nach einer öffentlichen `createIOS(...)`- oder `createIos(...)`-Factory in `TestZombieDriverMobile`.
-
-Falls die verwendete TestZombie-Version eine andere iOS-Factory bereitstellt, muss nur dieser Integrationspunkt an die konkrete API-Version angepasst werden.
+```bash
+mvn test -Dtest=MutationLevelMatrixTest
+```
 
 ---
 
-## 9. Troubleshooting
+## iOS simulator and WebView troubleshooting
 
-### `Missing TestZombie credentials`
+**XCUITest / WebDriverAgent does not start**
 
-Es wurden weder System Properties noch Environment Variables gefunden.
-
-Prüfen, ob die Credentials über eine der beschriebenen Varianten gesetzt wurden:
-
-1. direkt im Java-Code
-2. im `defaults`-Profil der `pom.xml`
-3. über Maven mit `-Dtestzombie.apikey` und `-Dtestzombie.email`
-4. über `TESTZOMBIE_API_KEY` und `TESTZOMBIE_EMAIL`
-
-Beispiel über Maven:
-
-```bash
-mvn test \
-  -Dtestzombie.apikey=YOUR_API_KEY \
-  -Dtestzombie.email=YOUR_EMAIL
-```
-
-### `iOS-App nicht gefunden`
-
-Prüfen, ob `TestZombieHybridIOS.app` im Projektroot liegt.
-
-Alternativ einen eigenen Pfad setzen:
-
-```bash
--Dapp.ios=/path/to/TestZombieHybridIOS.app
-```
-
-### XCUITest / WebDriverAgent Fehler
-
-Wenn keine iOS-Session aufgebaut werden kann:
-
-1. prüfen, ob Xcode und der gewünschte Simulator installiert sind
-2. prüfen, ob der Appium XCUITest Driver installiert ist
-3. prüfen, ob `DEVICE_NAME`, `PLATFORM_VERSION` und optional `DEVICE_UDID` zum Zielgerät passen
-4. Appium-Log auf Fehler beim Start von WebDriverAgent prüfen
-
-Installierte Appium Driver anzeigen:
+Check Xcode, the selected simulator or device, and the installed XCUITest driver:
 
 ```bash
 appium driver list --installed
 ```
 
-### WebView wird nicht gefunden
+Make sure `DEVICE_NAME`, `PLATFORM_VERSION`, and (if provided) `DEVICE_UDID` match your target. For physical devices, also check signing, provisioning, trust, and WebDriverAgent setup.
 
-Wenn beim Wechsel in den `WEBVIEW` kein Web-Kontext verfügbar ist:
+**No `WEBVIEW` context is available**
 
-1. prüfen, ob die Demo-App korrekt gestartet wurde
-2. prüfen, ob die WebView innerhalb der App vollständig geladen wurde
-3. Appium-Log auf WebKit-/WebView-Verbindungsfehler prüfen
+Make sure the demo app reached its WebView screen and has finished loading. Check Appium logs for WebKit/Web Inspector connection errors.
+
+**App bundle not found**
+
+Check that `TestZombieHybridIOS.app` exists in the working directory. To use another app, pass:
+
+```bash
+mvn test -Dtest=OnboardingFlowTest -Dapp.ios=/absolute/path/to/TestZombieHybridIOS.app
+```
+
+**Missing TestZombie credentials**
+
+Fill the `defaults` profile in `pom.xml`, pass `-Dtestzombie.apikey` and `-Dtestzombie.email`, or export `TESTZOMBIE_API_KEY` and `TESTZOMBIE_EMAIL`.
+
+**Unable to rebuild the sample app**
+
+The bundled `TestZombieHybridIOS.app` is already compiled for the simulator. The source Xcode project (`ios-app/TestZombieHybridIOS.xcodeproj`) is **not included** in this Java example. The optional `scripts/build-ios-simulator.sh` therefore cannot rebuild the app without that separate Xcode project.
 
 ---
 
-## Quickstart
+## Security
 
-```text
-1. Credentials setzen
-   - direkt im Java-Code
-   - oder in der pom.xml
-   - alternativ über Maven / Environment Variables
-2. Appium normal starten
-3. mvn test ausführen
-```
+Never commit API keys, account credentials, or sensitive test artifacts. Placing credentials in the `pom.xml` `defaults` profile is convenient for an initial local run, but **remove them before committing or sharing** the file. In shared repositories and CI/CD, inject secrets securely at runtime.
 
-Einfachste Variante für einen lokalen Test:
+## More validation
 
-```java
-TestZombieDriver.setCredentials(
-        "YOUR_API_KEY",
-        "YOUR_EMAIL"
-);
-```
+Use the five mutation levels to compare a stable baseline with increasingly changed UI structures. The three feature demos exercise TestZombie's SDK functions; the matrix test provides an independent control for the iOS app.
 
-Appium starten:
-
-```bash
-appium server
-```
-
-In einem zweiten Terminal:
-
-```bash
-mvn test
-```
-
-Die Tests bleiben normale Appium-Tests. TestZombie wird zentral bei der Driver-Erzeugung in `AppiumTestBase` integriert.
+This README describes the intended workflow and the checked-in Java code. A full live run of iOS XCUITest, WebView automation, Discovery output, and source updates still requires a suitable Mac/Xcode/Appium environment and TestZombie access.

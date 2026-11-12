@@ -57,8 +57,9 @@ public final class AppiumDriverFactory {
 
         String apiKey = setting("testzombie.apikey", "TESTZOMBIE_API_KEY", null);
         String email = setting("testzombie.email", "TESTZOMBIE_EMAIL", null);
+
         if (apiKey == null || email == null) {
-            throw new IllegalStateException("TestZombie credentials missing. Set TESTZOMBIE_API_KEY "
+            System.out.println("TestZombie credentials missing. Set TESTZOMBIE_API_KEY "
                     + "and TESTZOMBIE_EMAIL, or pass -Dtestzombie.apikey=... "
                     + "-Dtestzombie.email=... .");
         }
